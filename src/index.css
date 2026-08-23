@@ -26,7 +26,7 @@ body {
     @apply rounded-3xl bg-white/70 backdrop-blur-xl shadow-glass border border-white/60;
   }
   .input-base {
-    @apply w-full rounded-2xl border border-orange-100 bg-white/80 px-4 py-3 text-ink outline-none transition focus:border-brand-orange focus:ring-2 focus:ring-brand-orange/20;
+    @apply w-full min-w-0 rounded-2xl border border-orange-100 bg-white/80 px-4 py-3 text-ink outline-none transition focus:border-brand-orange focus:ring-2 focus:ring-brand-orange/20;
   }
   /* 下拉选择框：隐藏原生外观，使用与整体风格一致的自定义箭头 */
   select.input-base {

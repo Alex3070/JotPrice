@@ -49,7 +49,7 @@ interface Props {
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <label className="block space-y-1.5">
+    <label className="block min-w-0 space-y-1.5">
       <span className="text-xs font-medium text-muted">{label}</span>
       {children}
     </label>
