@@ -468,24 +468,22 @@ export default function RecordForm({
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3">
-        <Field label="日期">
-          <input
-            className="input-base"
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-          />
-        </Field>
-        <Field label="备注（可选）">
-          <input
-            className="input-base"
-            placeholder="如 很新鲜"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-          />
-        </Field>
-      </div>
+      <Field label="日期">
+        <input
+          className="input-base"
+          type="date"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+        />
+      </Field>
+      <Field label="备注（可选）">
+        <input
+          className="input-base"
+          placeholder="如 很新鲜"
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+        />
+      </Field>
 
       <button type="button" onClick={handleSubmit} className="btn-primary w-full">
         保存记录
