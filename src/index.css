@@ -1,0 +1,53 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: #fff7f0;
+  color: #1f2937;
+  font-family: "PingFang-SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
+}
+
+@layer components {
+  .glass-card {
+    @apply rounded-3xl bg-white/70 backdrop-blur-xl shadow-glass border border-white/60;
+  }
+  .input-base {
+    @apply w-full rounded-2xl border border-orange-100 bg-white/80 px-4 py-3 text-ink outline-none transition focus:border-brand-orange focus:ring-2 focus:ring-brand-orange/20;
+  }
+  /* 下拉选择框：隐藏原生外观，使用与整体风格一致的自定义箭头 */
+  select.input-base {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.9rem center;
+    background-size: 1.1em;
+    padding-right: 2.75rem;
+    cursor: pointer;
+  }
+  /* 下拉弹出的选项列表：统一白底深色文字 */
+  select option {
+    background: #ffffff;
+    color: #1f2937;
+    font-size: 14px;
+  }
+  .btn-primary {
+    @apply rounded-2xl bg-brand-orange px-5 py-3 font-semibold text-white shadow-glass transition active:scale-[0.97] active:opacity-90;
+  }
+  .btn-ghost {
+    @apply rounded-2xl border border-orange-100 bg-white/70 px-4 py-2.5 text-ink transition active:scale-[0.97];
+  }
+}

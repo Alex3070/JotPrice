@@ -1,0 +1,10 @@
+{
+  "_说明": "本地开发直连模式模板：复制本文件为 public/ocr.config.json 并填入真实值即可在本地 dev 使用。发布到 Cloudflare Pages 后请改用服务端代理（functions/api/ocr.js），此文件不会被打包使用，切勿提交真实密钥。",
+  "enabled": true,
+  "endpoint": "https://openrouter.ai/api/v1/chat/completions",
+  "apiKey": "sk-or-填写你的Key",
+  "model": "gpt-4o-mini",
+  "prompt": "你是一个识别菜市场小票/价格标签的助手。请从图片中识别出商品信息，只返回 JSON 对象，不要输出任何其他文字或 markdown。JSON 格式：{\"name\": \"商品名\", \"price\": 数字单价（元）, \"unit\": \"kg\"|\"jin\"|\"g\", \"weight\": 按规格出售时的总重量数字（可选）, \"weightUnit\": \"g\"|\"kg\"|\"jin\"（可选，缺省按 unit 处理）}。若图片不是价格小票或无法识别，返回 {\"name\": \"\", \"price\": 0}。",
+  "amapKey": "",
+  "amapSecurityCode": ""
+}
