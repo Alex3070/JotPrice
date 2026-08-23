@@ -72,7 +72,8 @@ Cloudflare Dashboard → Workers & Pages → Create → Pages → Connect to Git
 | 变量名 | 必填 | 说明 |
 |---|---|---|
 | `OPENROUTER_API_KEY` | ✅ | OpenRouter 密钥 |
-| `OCR_MODEL` | 可选 | 模型名，如 `openai/gpt-4o-mini`，默认 `gpt-4o-mini` |
+| `OCR_MODEL` | 可选 | 主模型名，如 `openai/gpt-4o-mini`，默认 `gpt-4o-mini` |
+| `OCR_FALLBACK_MODEL` | 可选 | 备选模型名；当主模型返回 429/503/504 时自动切换重试一次 |
 | `OPENROUTER_ENDPOINT` | 可选 | 默认 `https://openrouter.ai/api/v1/chat/completions` |
 | `ACCESS_TOKEN` | 可选 | 弱口令防刷，设置后前端必须带同名 `VITE_ACCESS_TOKEN` |
 

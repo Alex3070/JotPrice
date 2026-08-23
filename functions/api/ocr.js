@@ -5,13 +5,14 @@
  * OpenRouter（OpenAI 兼容接口），密钥永不落入浏览器。
  *
  * 环境变量（Cloudflare Pages 控制台 → Settings → Environment variables 中配置）：
- *   OPENROUTER_API_KEY   必填，OpenRouter 密钥
- *   OPENROUTER_ENDPOINT  可选，OpenRouter 接口域名，默认 https://openrouter.ai/api/v1/chat/completions
- *   OCR_MODEL            可选，识别模型名（需带供应商前缀，如 openai/gpt-4o-mini），默认 gpt-4o-mini
- *   ACCESS_TOKEN         可选，弱口令防刷；设置后前端必须携带同名请求头 x-access-token
+ *   OPENROUTER_API_KEY     必填，OpenRouter 密钥
+ *   OPENROUTER_ENDPOINT    可选，OpenRouter 接口域名，默认 https://openrouter.ai/api/v1/chat/completions
+ *   OCR_MODEL              可选，主识别模型名（需带供应商前缀，如 openai/gpt-4o-mini），默认 gpt-4o-mini
+ *   OCR_FALLBACK_MODEL     可选，备选模型名；当主模型返回 429/503/504 时自动切换重试一次
+ *   ACCESS_TOKEN           可选，弱口令防刷；设置后前端必须携带同名请求头 x-access-token
  *
  * 请求体：{ prompt, image }，image 为 base64 data URL。
- * 模型名由服务端 OCR_MODEL 决定，前端无需感知任何 OpenRouter 配置。
+ * 模型名由服务端 OCR_MODEL / OCR_FALLBACK_MODEL 决定，前端无需感知任何 OpenRouter 配置。
  */
 export async function onRequestPost(context) {
   const { request, env } = context;
@@ -45,32 +46,47 @@ export async function onRequestPost(context) {
   if (!model) {
     return json({ error: "服务端未配置 OCR_MODEL" }, 500);
   }
+  const fallbackModel = (env.OCR_FALLBACK_MODEL || "").trim();
 
   const endpoint =
     env.OPENROUTER_ENDPOINT || "https://openrouter.ai/api/v1/chat/completions";
 
-  const upstream = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${env.OPENROUTER_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model,
-      messages: [
-        {
-          role: "user",
-          content: [
-            { type: "text", text: prompt },
-            { type: "image_url", image_url: { url: image } },
-          ],
-        },
-      ],
-    }),
-  });
+  async function callModel(m) {
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${env.OPENROUTER_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: m,
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: prompt },
+              { type: "image_url", image_url: { url: image } },
+            ],
+          },
+        ],
+      }),
+    });
+    const text = await res.text();
+    return { res, text };
+  }
+
+  let { res: upstream, text } = await callModel(model);
+
+  // 主模型限流或服务不可用时，自动切换到备选模型重试一次
+  if (
+    fallbackModel &&
+    fallbackModel !== model &&
+    [429, 503, 504].includes(upstream.status)
+  ) {
+    ({ res: upstream, text } = await callModel(fallbackModel));
+  }
 
   // 原样透传上游响应（含状态码），前端按 OpenAI 兼容格式解析
-  const text = await upstream.text();
   return new Response(text, {
     status: upstream.status,
     headers: { "Content-Type": "application/json" },

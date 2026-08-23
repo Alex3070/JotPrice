@@ -28,6 +28,12 @@ body {
   .input-base {
     @apply w-full min-w-0 rounded-2xl border border-orange-100 bg-white/80 px-4 py-3 text-ink outline-none transition focus:border-brand-orange focus:ring-2 focus:ring-brand-orange/20;
   }
+  /* iOS Safari date input 默认文本可能贴着圆角边界甚至溢出，统一左对齐并裁剪 */
+  input[type="date"] {
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
   /* 下拉选择框：隐藏原生外观，使用与整体风格一致的自定义箭头 */
   select.input-base {
     appearance: none;
