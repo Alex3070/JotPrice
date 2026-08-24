@@ -1,35 +1,33 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Pencil } from "lucide-react";
 import { useRecords } from "../hooks/useRecords";
 import { useChannels } from "../hooks/useChannels";
 import { useOcrConfig } from "../hooks/useOcrConfig";
+import { useOcrQueue } from "../hooks/useOcrQueue";
 import CaptureView from "../components/CaptureView";
 import OcrTaskList, { type OcrTask } from "../components/OcrTaskList";
 import RecordForm, { type FormInit } from "../components/RecordForm";
-import { recognizePrice, type OcrResult } from "../lib/ocr";
 import { useToast } from "../components/ui";
-import type { OcrConfig } from "../types";
+import type { OcrResult } from "../lib/ocr";
 
 type View = "capture" | "form";
-
-/** 同时进行的识别请求上限，避免连续上传把大模型打限流 */
-const MAX_CONCURRENT = 2;
 
 export default function HomePage() {
   const { add } = useRecords();
   const { channels, add: addChannel } = useChannels();
   const { config } = useOcrConfig();
   const toast = useToast();
+  const {
+    tasks,
+    enqueue,
+    retry,
+    clearTask,
+    activeTaskId,
+    setActiveTaskId,
+  } = useOcrQueue();
 
   const [view, setView] = useState<View>("capture");
   const [formInit, setFormInit] = useState<FormInit | null>(null);
-  const [tasks, setTasks] = useState<OcrTask[]>([]);
-  /** 当前表单对应的任务：保存到记录后清除该任务 */
-  const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
-
-  // 后台识别队列：提交即返回，识别完成后回写任务状态
-  const queueRef = useRef<{ taskId: string; file: File; cfg: OcrConfig }[]>([]);
-  const runningRef = useRef(0);
 
   const ocrReady =
     !!config?.enabled &&
@@ -62,66 +60,12 @@ export default function HomePage() {
     return init;
   }
 
-  /** 依次启动队列里的任务（不超过并发上限） */
-  function pump() {
-    while (runningRef.current < MAX_CONCURRENT && queueRef.current.length > 0) {
-      const item = queueRef.current.shift()!;
-      runningRef.current++;
-      runTask(item).finally(() => {
-        runningRef.current--;
-        pump();
-      });
-    }
-  }
-
-  async function runTask(item: {
-    taskId: string;
-    file: File;
-    cfg: OcrConfig;
-  }) {
-    try {
-      const result = await recognizePrice(item.file, item.cfg);
-      setTasks((ts) =>
-        ts.map((t) =>
-          t.id === item.taskId ? { ...t, status: "done", result } : t
-        )
-      );
-    } catch (err) {
-      console.error(err);
-      setTasks((ts) =>
-        ts.map((t) =>
-          t.id === item.taskId
-            ? {
-                ...t,
-                status: "error",
-                error: err instanceof Error ? err.message : "识别失败",
-              }
-            : t
-        )
-      );
-    }
-  }
-
-  function enqueueTask(file: File, cfg: OcrConfig) {
-    const task: OcrTask = {
-      id: crypto.randomUUID(),
-      photoUrl: URL.createObjectURL(file),
-      file,
-      status: "processing",
-      createdAt: Date.now(),
-    };
-    setTasks((ts) => [task, ...ts]);
-    queueRef.current.push({ taskId: task.id, file, cfg });
-    pump();
-  }
-
   function handleFile(file: File) {
-    if (!ocrReady || !config) {
+    if (!ocrReady) {
       toast("OCR 未配置，可在「管理-拍照设置」中填写接口", "info");
       return;
     }
-    enqueueTask(file, config);
-    toast("已加入识别队列，可继续拍摄", "success");
+    enqueue(file);
   }
 
   /** 点击识别完成的卡片，进入表单核对（保存成功后才清除任务） */
@@ -131,29 +75,6 @@ export default function HomePage() {
     setFormInit(buildInit(task.result));
     setView("form");
     toast("识别完成，请核对后保存", "success");
-  }
-
-  function retryTask(id: string) {
-    const task = tasks.find((t) => t.id === id);
-    if (!task || !config) return;
-    setTasks((ts) =>
-      ts.map((t) =>
-        t.id === id
-          ? { ...t, status: "processing", error: undefined, result: undefined }
-          : t
-      )
-    );
-    queueRef.current.push({ taskId: id, file: task.file, cfg: config });
-    pump();
-  }
-
-  /** 清除指定任务（保存到记录后调用） */
-  function clearTask(id: string) {
-    setTasks((ts) => {
-      const task = ts.find((t) => t.id === id);
-      if (task) URL.revokeObjectURL(task.photoUrl);
-      return ts.filter((t) => t.id !== id);
-    });
   }
 
   function openManual() {
@@ -192,11 +113,7 @@ export default function HomePage() {
       {view === "capture" ? (
         <>
           <CaptureView ocrReady={ocrReady} onFile={handleFile} />
-          <OcrTaskList
-            tasks={tasks}
-            onOpen={openResult}
-            onRetry={retryTask}
-          />
+          <OcrTaskList tasks={tasks} onOpen={openResult} onRetry={retry} />
         </>
       ) : (
         <RecordForm
