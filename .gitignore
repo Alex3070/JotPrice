@@ -20,6 +20,9 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# 本地 IDE / 计划文件（本地保留，不提交）
+.codebuddy/
+
 # 编辑器
 .vscode/*
 !.vscode/extensions.json
