@@ -24,6 +24,8 @@ export default function HomePage() {
   const [view, setView] = useState<View>("capture");
   const [formInit, setFormInit] = useState<FormInit | null>(null);
   const [tasks, setTasks] = useState<OcrTask[]>([]);
+  /** 当前表单对应的任务：保存到记录后清除该任务 */
+  const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
 
   // 后台识别队列：提交即返回，识别完成后回写任务状态
   const queueRef = useRef<{ taskId: string; file: File; cfg: OcrConfig }[]>([]);
@@ -122,9 +124,11 @@ export default function HomePage() {
     toast("已加入识别队列，可继续拍摄", "success");
   }
 
-  /** 点击识别完成的卡片，进入表单核对 */
-  function openResult(result: OcrResult) {
-    setFormInit(buildInit(result));
+  /** 点击识别完成的卡片，进入表单核对（保存成功后才清除任务） */
+  function openResult(task: OcrTask) {
+    if (!task.result) return;
+    setActiveTaskId(task.id);
+    setFormInit(buildInit(task.result));
     setView("form");
     toast("识别完成，请核对后保存", "success");
   }
@@ -143,7 +147,8 @@ export default function HomePage() {
     pump();
   }
 
-  function removeTask(id: string) {
+  /** 清除指定任务（保存到记录后调用） */
+  function clearTask(id: string) {
     setTasks((ts) => {
       const task = ts.find((t) => t.id === id);
       if (task) URL.revokeObjectURL(task.photoUrl);
@@ -153,6 +158,7 @@ export default function HomePage() {
 
   function openManual() {
     // 渠道与地点由 RecordForm 自动带入上次的选择
+    setActiveTaskId(null);
     setFormInit({});
     setView("form");
   }
@@ -161,6 +167,11 @@ export default function HomePage() {
     rec: Parameters<typeof add>[0]
   ): Promise<void> {
     await add(rec);
+    // 只有真正保存到记录，才清除对应的识别任务
+    if (activeTaskId) {
+      clearTask(activeTaskId);
+      setActiveTaskId(null);
+    }
   }
 
   return (
@@ -185,7 +196,6 @@ export default function HomePage() {
             tasks={tasks}
             onOpen={openResult}
             onRetry={retryTask}
-            onRemove={removeTask}
           />
         </>
       ) : (
@@ -196,7 +206,11 @@ export default function HomePage() {
           onAddChannel={addChannel}
           amapKey={config?.amapKey}
           amapSecurityCode={config?.amapSecurityCode}
-          onBack={() => setView("capture")}
+          onBack={() => {
+            // 未保存直接返回：任务保留在列表，仅解除与当前表单的关联
+            setActiveTaskId(null);
+            setView("capture");
+          }}
         />
       )}
     </div>
