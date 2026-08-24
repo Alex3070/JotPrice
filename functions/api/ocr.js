@@ -14,6 +14,18 @@
  * 请求体：{ prompt, image }，image 为 base64 data URL。
  * 模型名由服务端 OCR_MODEL / OCR_FALLBACK_MODEL 决定，前端无需感知任何 OpenRouter 配置。
  */
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, x-access-token",
+  "Access-Control-Max-Age": "86400",
+};
+
+// 浏览器跨域预检：本地 dev（localhost）直连云端代理时需要
+export async function onRequestOptions() {
+  return new Response(null, { status: 204, headers: CORS_HEADERS });
+}
+
 export async function onRequestPost(context) {
   const { request, env } = context;
 
@@ -89,13 +101,13 @@ export async function onRequestPost(context) {
   // 原样透传上游响应（含状态码），前端按 OpenAI 兼容格式解析
   return new Response(text, {
     status: upstream.status,
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...CORS_HEADERS },
   });
 }
 
 function json(payload, status) {
   return new Response(JSON.stringify(payload), {
     status,
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...CORS_HEADERS },
   });
 }
