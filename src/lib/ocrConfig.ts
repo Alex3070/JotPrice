@@ -67,7 +67,15 @@ export async function getOcrConfig(): Promise<OcrConfig> {
       cache: "no-store",
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const partial = (await res.json()) as Partial<OcrConfig>;
+    const text = await res.text();
+    let partial: Partial<OcrConfig>;
+    try {
+      partial = JSON.parse(text) as Partial<OcrConfig>;
+    } catch {
+      // Vite dev server 会把不存在的静态资源回退到 index.html（HTTP 200），
+      // 此时拿到的是 HTML 而非 JSON，需要给出清晰的提示而不是解析报错。
+      throw new Error("返回内容不是 JSON（本地未创建 ocr.config.json？）");
+    }
     return {
       ...DEFAULT_CONFIG,
       ...partial,
