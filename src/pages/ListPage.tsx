@@ -9,14 +9,16 @@ import { useToast } from "../components/ui";
 
 export default function ListPage() {
   const { records, loading, remove } = useRecords();
-  const { channels } = useChannels();
+  const { channels, hidden } = useChannels();
   const toast = useToast();
 
   const [keyword, setKeyword] = useState("");
   const [chId, setChId] = useState("");
 
-  const allChannels = getAllChannels(channels);
+  // 筛选下拉：排除用户手动删除的内置渠道
+  const allChannels = getAllChannels(channels, hidden);
 
+  // 历史记录渠道名解析：使用完整列表，被隐藏渠道的历史记录仍能显示名称
   const chMap = useMemo(
     () => Object.fromEntries(getAllChannels(channels).map((c) => [c.id, c])),
     [channels]

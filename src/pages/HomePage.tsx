@@ -14,7 +14,7 @@ type View = "capture" | "form";
 
 export default function HomePage() {
   const { add } = useRecords();
-  const { channels, add: addChannel } = useChannels();
+  const { channels, add: addChannel, hidden: hiddenBuiltinIds } = useChannels();
   const { config } = useOcrConfig();
   const toast = useToast();
   const {
@@ -118,6 +118,7 @@ export default function HomePage() {
       ) : (
         <RecordForm
           channels={channels}
+          hiddenBuiltinIds={hiddenBuiltinIds}
           initial={formInit}
           onSubmit={handleSubmit}
           onAddChannel={addChannel}

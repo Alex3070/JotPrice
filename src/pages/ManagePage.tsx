@@ -1,15 +1,23 @@
 import { useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, RotateCcw } from "lucide-react";
 import { useChannels } from "../hooks/useChannels";
 import { clearAllData } from "../db/database";
-import { BUILTIN_CHANNELS } from "../lib/channels";
+import { getVisibleBuiltinChannels, OFFLINE_CHANNEL_ID } from "../lib/channels";
 import { useToast } from "../components/ui";
 
 export default function ManagePage() {
   const toast = useToast();
-  const { channels, add: addCh, remove: rmCh } = useChannels();
+  const {
+    channels,
+    hidden,
+    add: addCh,
+    remove: rmCh,
+    hideBuiltin,
+    restoreBuiltins,
+  } = useChannels();
 
   const [newCh, setNewCh] = useState("");
+  const visibleBuiltins = getVisibleBuiltinChannels(hidden);
 
   async function handleClear() {
     if (!confirm("确定清空所有记录和渠道吗？此操作不可恢复。")) return;
@@ -27,16 +35,34 @@ export default function ManagePage() {
       {/* 渠道管理 */}
       <Section title="购买渠道">
         <p className="mb-3 text-xs text-muted">
-          内置常用平台（仅「线下购买」需要填写购买地点），可继续添加自定义渠道：
+          内置常用平台（仅「线下购买」需要填写购买地点），可删除不常用的，也可添加自定义渠道：
         </p>
         <div className="flex flex-wrap gap-2">
-          {BUILTIN_CHANNELS.map((c) => (
+          {visibleBuiltins.map((c) => (
             <span
               key={c.id}
               className="inline-flex items-center gap-1 rounded-full bg-white/70 px-3 py-1.5 text-sm text-ink shadow-card"
             >
               {c.name}
-              <span className="text-[10px] font-medium text-muted">内置</span>
+              {c.id === OFFLINE_CHANNEL_ID ? (
+                <span className="text-[10px] font-medium text-brand-orange">
+                  必选
+                </span>
+              ) : (
+                <span className="text-[10px] font-medium text-muted">内置</span>
+              )}
+              {c.id !== OFFLINE_CHANNEL_ID && (
+                <button
+                  onClick={() => {
+                    hideBuiltin(c.id);
+                    toast(`已删除「${c.name}」`, "info");
+                  }}
+                  className="ml-0.5 text-muted hover:text-red-500"
+                  aria-label={`删除渠道 ${c.name}`}
+                >
+                  <Trash2 size={14} />
+                </button>
+              )}
             </span>
           ))}
           {channels.map((c) => (
@@ -56,6 +82,18 @@ export default function ManagePage() {
               )}
             </span>
           ))}
+          {hidden.length > 0 && (
+            <button
+              onClick={async () => {
+                await restoreBuiltins();
+                toast("已恢复全部内置渠道", "info");
+              }}
+              className="inline-flex items-center gap-1 rounded-full border border-dashed border-orange-200 px-3 py-1.5 text-xs text-brand-orange"
+            >
+              <RotateCcw size={12} />
+              恢复已删除的内置渠道（{hidden.length}）
+            </button>
+          )}
         </div>
         <div className="mt-3 flex gap-2">
           <input

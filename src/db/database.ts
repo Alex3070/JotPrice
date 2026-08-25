@@ -93,5 +93,23 @@ export async function deleteChannel(id: string): Promise<void> {
 
 export async function clearAllData(): Promise<void> {
   const db = await getDB();
-  await Promise.all([db.clear("records"), db.clear("channels")]);
+  await Promise.all([
+    db.clear("records"),
+    db.clear("channels"),
+    db.clear("settings"),
+  ]);
+}
+
+/* Settings：被手动隐藏的内置渠道（删除内置渠道时写入，用于下拉过滤与恢复） */
+const SETTINGS_KEY_HIDDEN_BUILTIN = "hiddenBuiltinChannels";
+
+export async function getHiddenBuiltinChannels(): Promise<string[]> {
+  const db = await getDB();
+  const v = await db.get("settings", SETTINGS_KEY_HIDDEN_BUILTIN);
+  return Array.isArray(v) ? v : [];
+}
+
+export async function setHiddenBuiltinChannels(ids: string[]): Promise<void> {
+  const db = await getDB();
+  await db.put("settings", ids, SETTINGS_KEY_HIDDEN_BUILTIN);
 }

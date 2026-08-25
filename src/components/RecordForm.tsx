@@ -37,6 +37,8 @@ export interface FormInit {
 
 interface Props {
   channels: Channel[];
+  /** 被用户手动删除（隐藏）的内置渠道 id，用于过滤下拉选项 */
+  hiddenBuiltinIds?: string[];
   initial?: FormInit | null;
   onSubmit: (rec: Omit<PriceRecord, "id" | "createdAt">) => Promise<void>;
   onAddChannel?: (name: string) => Promise<Channel>;
@@ -87,6 +89,7 @@ function SelectWrap({
 
 export default function RecordForm({
   channels,
+  hiddenBuiltinIds = [],
   initial,
   onSubmit,
   onAddChannel,
@@ -111,8 +114,8 @@ export default function RecordForm({
     initial?.spec ? String(initial.spec.weight) : ""
   );
   const [specUnit, setSpecUnit] = useState<Unit>(initial?.spec?.unit ?? "jin");
-  // 全部渠道 = 内置平台 + 自定义渠道
-  const allChannels = getAllChannels(channels);
+  // 全部渠道 = 可见内置平台 + 自定义渠道
+  const allChannels = getAllChannels(channels, hiddenBuiltinIds);
   // 记忆上次选择的渠道与地点，打开表单时自动带入（initial 优先级最高）
   const [last] = useState(() => loadLastChoices());
   const [channelId, setChannelId] = useState(() => {
@@ -120,8 +123,10 @@ export default function RecordForm({
     if (init && allChannels.some((c) => c.id === init)) return init;
     if (last?.channelId && allChannels.some((c) => c.id === last.channelId))
       return last.channelId;
-    // 默认选中「线下购买」
-    return OFFLINE_CHANNEL_ID;
+    // 默认选中「线下购买」；若它被删除则回退到第一个可见渠道
+    if (allChannels.some((c) => c.id === OFFLINE_CHANNEL_ID))
+      return OFFLINE_CHANNEL_ID;
+    return allChannels[0]?.id ?? "";
   });
   // 仅当初始渠道为线下（线下购买或自定义渠道）时，才带出上一次的地点；线上平台不带出
   const offlineByDefault = isOfflineChannel(channelId);

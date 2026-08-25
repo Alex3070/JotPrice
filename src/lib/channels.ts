@@ -25,9 +25,22 @@ export const BUILTIN_CHANNELS: Channel[] = [
 /** 「线下购买」渠道 id：选择它时才记录/展示购买地点 */
 export const OFFLINE_CHANNEL_ID = "builtin:offline";
 
-/** 全部渠道 = 内置渠道 + 用户自定义渠道 */
-export function getAllChannels(custom: Channel[]): Channel[] {
-  return [...BUILTIN_CHANNELS, ...custom];
+/** 可见的内置渠道（已排除用户手动隐藏的；「线下购买」始终保留不可删除） */
+export function getVisibleBuiltinChannels(
+  hiddenBuiltinIds: string[] = []
+): Channel[] {
+  if (hiddenBuiltinIds.length === 0) return BUILTIN_CHANNELS;
+  const hidden = new Set(hiddenBuiltinIds);
+  hidden.delete(OFFLINE_CHANNEL_ID);
+  return BUILTIN_CHANNELS.filter((c) => !hidden.has(c.id));
+}
+
+/** 全部渠道 = 可见内置渠道 + 用户自定义渠道 */
+export function getAllChannels(
+  custom: Channel[],
+  hiddenBuiltinIds: string[] = []
+): Channel[] {
+  return [...getVisibleBuiltinChannels(hiddenBuiltinIds), ...custom];
 }
 
 /** 是否为线下渠道：「线下购买」，或自定义渠道（自定义默认视为线下） */
