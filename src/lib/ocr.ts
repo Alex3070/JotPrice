@@ -230,9 +230,15 @@ async function requestViaWorker(
       signal: controller.signal,
       headers,
       body: JSON.stringify({
-        // 模型名由服务端 OCR_MODEL 决定，前端不携带任何 OpenRouter 配置
         prompt: cfg.prompt,
         image: dataUrl,
+        // 仅当显式配置 VITE_OCR_ENDPOINT / VITE_OCR_MODEL / VITE_OCR_FALLBACK_MODEL
+        // 时才随请求携带；未配置时由服务端环境变量决定，前端不感知任何接口细节
+        ...(cfg.workerEndpoint ? { endpoint: cfg.workerEndpoint } : {}),
+        ...(cfg.workerModel ? { model: cfg.workerModel } : {}),
+        ...(cfg.workerFallbackModel
+          ? { fallbackModel: cfg.workerFallbackModel }
+          : {}),
       }),
     });
   } catch (err) {

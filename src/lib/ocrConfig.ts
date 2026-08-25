@@ -54,8 +54,18 @@ export async function getOcrConfig(): Promise<OcrConfig> {
       ...DEFAULT_CONFIG,
       enabled: true,
       workerUrl,
-      // 云端代理模式下模型名由服务端 OCR_MODEL 决定，此字段仅作占位，前端不再使用
+      // 云端代理模式下模型名由服务端 OCR_MODEL 决定，此字段仅作占位，前端不再使用；
+      // 若通过 VITE_OCR_MODEL 等变量显式指定，则作为覆盖项随请求体传给服务端
       model: DEFAULT_CONFIG.model,
+      workerEndpoint:
+        (import.meta.env.VITE_OCR_ENDPOINT as string | undefined)?.trim() ||
+        undefined,
+      workerModel:
+        (import.meta.env.VITE_OCR_MODEL as string | undefined)?.trim() ||
+        undefined,
+      workerFallbackModel:
+        (import.meta.env.VITE_OCR_FALLBACK_MODEL as string | undefined)?.trim() ||
+        undefined,
       amapKey: amapKey || undefined,
       amapSecurityCode: amapSecurityCode || undefined,
     };

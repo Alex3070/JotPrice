@@ -43,6 +43,16 @@ export interface OcrConfig {
    * 设置后识别请求改走该代理，apiKey/endpoint 由服务端持有，客户端不再直连。
    */
   workerUrl?: string;
+  /**
+   * 云端代理模式下，前端显式指定的接口地址（由 VITE_OCR_ENDPOINT 注入）。
+   * 设置后会随请求体传给服务端，覆盖服务端 OPENROUTER_ENDPOINT。
+   * ⚠️ 服务端 key 将发送到该地址，务必同时配置 ACCESS_TOKEN 防刷。
+   */
+  workerEndpoint?: string;
+  /** 云端代理模式下，前端显式指定的主模型（由 VITE_OCR_MODEL 注入），覆盖服务端 OCR_MODEL */
+  workerModel?: string;
+  /** 云端代理模式下，前端显式指定的备选模型（由 VITE_OCR_FALLBACK_MODEL 注入），覆盖服务端 OCR_FALLBACK_MODEL */
+  workerFallbackModel?: string;
   /** 高德地图 Web 端(JS API) Key，用于“选择地点”地图选点 */
   amapKey?: string;
   /** 高德地图安全密钥（v2.0 安全机制，选填） */
