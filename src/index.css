@@ -28,11 +28,24 @@ body {
   .input-base {
     @apply w-full min-w-0 rounded-2xl border border-orange-100 bg-white/80 px-4 py-3 text-ink outline-none transition focus:border-brand-orange focus:ring-2 focus:ring-brand-orange/20;
   }
-  /* iOS Safari date input 默认文本可能贴着圆角边界甚至溢出，统一左对齐并裁剪 */
+  /* iOS Safari date input 默认控件有 intrinsic min-width 且原生日历图标占位不可控，
+     这里移除原生外观、强制占满容器不溢出，并复用统一的自定义日历图标 */
   input[type="date"] {
     text-align: left;
     overflow: hidden;
     text-overflow: ellipsis;
+    display: block;
+    max-width: 100%;
+    -webkit-appearance: none;
+    appearance: none;
+    padding-right: 2.75rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'/%3E%3Cline x1='16' y1='2' x2='16' y2='6'/%3E%3Cline x1='8' y1='2' x2='8' y2='6'/%3E%3Cline x1='3' y1='10' x2='21' y2='10'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.9rem center;
+    background-size: 1.1em;
+  }
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    display: none;
   }
   /* 下拉选择框：隐藏原生外观，使用与整体风格一致的自定义箭头 */
   select.input-base {
