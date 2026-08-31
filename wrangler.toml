@@ -2,7 +2,8 @@
 # 用途：本地开发（wrangler pages dev）与 D1 建表/管理
 # 生产环境 Pages 的 D1 绑定需在控制台配置，绑定变量名同为 DB。
 name = "jotprice"
-compatibility_date = "2026-09-01"
+# 注意：Cloudflare 按 UTC 校验，不能写未来日期（本地 +8 时区的今天可能是 UTC 的昨天）
+compatibility_date = "2025-09-01"
 pages_build_output_dir = "./dist"
 
 [[d1_databases]]
