@@ -80,21 +80,18 @@ export async function syncOnce(): Promise<void> {
   const baselineDone = (await getSetting<boolean>(KEY_BASELINE_DONE)) ?? false;
   if (!baselineDone) {
     const [records, channels] = await Promise.all([getRecords(), getChannels()]);
+    // 基线时间戳必须用「推送时刻」：若沿用记录的创建时间，其他已同步过的设备
+    // 游标已推进，会因 updated_at 过旧而永远拉取不到这批数据
+    const baselineAt = Date.now();
     const pushed = new Set(items.map((i) => `${i.type}:${i.id}`));
     for (const r of records) {
       if (!pushed.has(`record:${r.id}`)) {
-        items.push({ id: r.id, type: "record", data: r, deleted: false, updatedAt: r.createdAt });
+        items.push({ id: r.id, type: "record", data: r, deleted: false, updatedAt: baselineAt });
       }
     }
     for (const c of channels) {
       if (!pushed.has(`channel:${c.id}`)) {
-        items.push({
-          id: c.id,
-          type: "channel",
-          data: c,
-          deleted: false,
-          updatedAt: c.createdAt ?? 0,
-        });
+        items.push({ id: c.id, type: "channel", data: c, deleted: false, updatedAt: baselineAt });
       }
     }
   }
