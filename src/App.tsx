@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { initDB } from "./db/database";
 import { ToastProvider } from "./components/ui";
 import { OcrQueueProvider } from "./hooks/useOcrQueue";
+import { SyncProvider } from "./hooks/useSync";
 import { BottomNav } from "./components/BottomNav";
 import HomePage from "./pages/HomePage";
 import ListPage from "./pages/ListPage";
@@ -27,7 +28,8 @@ export default function App() {
 
   return (
     <ToastProvider>
-      <OcrQueueProvider>
+      <SyncProvider>
+        <OcrQueueProvider>
         <div className="min-h-full bg-soft-bg">
           <Routes>
             <Route path="/" element={<HomePage />} />
@@ -37,7 +39,8 @@ export default function App() {
           </Routes>
           <BottomNav />
         </div>
-      </OcrQueueProvider>
+        </OcrQueueProvider>
+      </SyncProvider>
     </ToastProvider>
   );
 }

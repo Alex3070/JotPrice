@@ -1,6 +1,7 @@
-import { useState } from "react";
-import { Plus, Trash2, RotateCcw } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Plus, Trash2, RotateCcw, Cloud, RefreshCw } from "lucide-react";
 import { useChannels } from "../hooks/useChannels";
+import { useSync } from "../hooks/useSync";
 import { clearAllData } from "../db/database";
 import { getVisibleBuiltinChannels, OFFLINE_CHANNEL_ID } from "../lib/channels";
 import { useToast } from "../components/ui";
@@ -16,8 +17,18 @@ export default function ManagePage() {
     restoreBuiltins,
   } = useChannels();
 
+  const { config, lastSyncAt, syncing, error, saveConfig, syncNow } = useSync();
+
   const [newCh, setNewCh] = useState("");
+  const [syncUrl, setSyncUrl] = useState("");
+  const [syncToken, setSyncToken] = useState("");
   const visibleBuiltins = getVisibleBuiltinChannels(hidden);
+
+  // 配置加载完成后回填输入框
+  useEffect(() => {
+    setSyncUrl(config.url);
+    setSyncToken(config.token ?? "");
+  }, [config.url, config.token]);
 
   async function handleClear() {
     if (!confirm("确定清空所有记录和渠道吗？此操作不可恢复。")) return;
@@ -112,6 +123,84 @@ export default function ManagePage() {
           >
             <Plus size={18} />
           </button>
+        </div>
+      </Section>
+
+      {/* 云同步 */}
+      <Section title="云同步">
+        <p className="mb-3 text-xs text-muted">
+          将记录与渠道同步到云端 D1 数据库，多设备共享数据。地址留空时使用同域
+          <code className="mx-1 rounded bg-black/5 px-1">/api/sync</code>。
+        </p>
+
+        <div className="mb-3 flex items-center justify-between">
+          <span className="text-sm text-ink">自动同步</span>
+          <button
+            onClick={() => saveConfig({ auto: !config.auto })}
+            className={`relative h-6 w-11 rounded-full transition ${
+              config.auto ? "bg-brand-orange" : "bg-muted/40"
+            }`}
+            aria-label="自动同步开关"
+          >
+            <span
+              className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                config.auto ? "translate-x-5" : ""
+              }`}
+            />
+          </button>
+        </div>
+
+        <label className="mb-1 block text-xs text-muted">同步接口地址</label>
+        <input
+          className="input-base mb-3"
+          placeholder="https://your-site.pages.dev/api/sync"
+          value={syncUrl}
+          onChange={(e) => setSyncUrl(e.target.value)}
+        />
+
+        <label className="mb-1 block text-xs text-muted">
+          访问口令（可选，与服务端 ACCESS_TOKEN 一致）
+        </label>
+        <input
+          className="input-base mb-3"
+          type="password"
+          placeholder="留空则使用 VITE_ACCESS_TOKEN"
+          value={syncToken}
+          onChange={(e) => setSyncToken(e.target.value)}
+        />
+
+        <div className="flex gap-2">
+          <button
+            className="btn-ghost flex-1"
+            onClick={async () => {
+              await saveConfig({ url: syncUrl.trim(), token: syncToken.trim() });
+              toast("同步设置已保存", "success");
+            }}
+          >
+            <Cloud size={16} />
+            保存设置
+          </button>
+          <button
+            className="btn-ghost flex-1"
+            disabled={syncing}
+            onClick={() => void syncNow()}
+          >
+            <RefreshCw size={16} className={syncing ? "animate-spin" : ""} />
+            {syncing ? "同步中" : "立即同步"}
+          </button>
+        </div>
+
+        <div className="mt-3 space-y-1 text-xs">
+          {syncing && <p className="text-muted">正在同步…</p>}
+          {!syncing && error && <p className="text-red-500">{error}</p>}
+          {!syncing && !error && lastSyncAt && (
+            <p className="text-muted">
+              上次同步：{new Date(lastSyncAt).toLocaleString()}
+            </p>
+          )}
+          {!syncing && !error && !lastSyncAt && (
+            <p className="text-muted">尚未同步过</p>
+          )}
         </div>
       </Section>
 

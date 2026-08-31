@@ -4,6 +4,8 @@ export interface Channel {
   id: string;
   name: string;
   custom: boolean;
+  /** 创建时间，用于云同步的冲突比较（Last-Write-Wins） */
+  createdAt?: number;
 }
 
 export interface PriceRecord {

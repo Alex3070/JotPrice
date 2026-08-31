@@ -2,6 +2,7 @@
 
 本项目为「静态前端 + Serverless 函数」架构：前端由 Vite 构建为静态站点，
 OCR 识别通过同域 `/api/ocr`（Cloudflare Pages Functions）代理到 OpenRouter，
+数据云同步通过 `/api/sync` + Cloudflare D1 实现，
 **所有付费密钥都只存在于服务端环境变量**。
 
 ## 一、密钥分布总览
@@ -87,7 +88,29 @@ Cloudflare Dashboard → Workers & Pages → Create → Pages → Connect to Git
 > Cloudflare 的 `OPENROUTER_API_KEY` 等建议勾选 **Encrypt**，避免在控制台明文展示。
 > 在「Builds & deployments → Production branch」选择正式分支（如 `main`）后，每次推送自动部署。
 
-### 4. 绑定自定义域名（可选）
+### 4. 创建 D1 数据库并绑定（云同步必做）
+
+云同步需要 Cloudflare D1 数据库（免费 5GB）。两种方式任选：
+
+**方式 A：命令行（推荐）**
+```bash
+npm i -D wrangler
+npx wrangler login
+npx wrangler d1 create maicai-sync        # 创建数据库，记下 database_id
+npx wrangler d1 execute maicai-sync --file=schema.sql   # 建表
+```
+
+**方式 B：控制台**
+- Dashboard → D1 → Create database（如 `maicai-sync`）
+- 进入数据库 → Console，把 `schema.sql` 的内容粘贴执行
+
+然后回到 Pages 项目：Settings → Functions → **D1 database bindings** →
+Add binding，变量名固定填 **`DB`**，选择刚创建的 `maicai-sync`。
+
+> 建议同时把生产环境的 D1 绑定也加到 Preview 环境（或保持同一份），
+> 本地调试 `npx wrangler pages dev --d1 DB=maicai-sync` 可联调。
+
+### 5. 绑定自定义域名（可选）
 Pages 默认提供 `xxx.pages.dev` 域名，可直接使用；也可以在
 Custom domains 中绑定自己的域名（需在 DNS 处添加 CNAME 记录）。
 
@@ -99,6 +122,9 @@ Custom domains 中绑定自己的域名（需在 DNS 处添加 CNAME 记录）�
 4. 浏览器 DevTools → Network：检查 `/api/ocr` 请求返回 200 且不含密钥；
    确认 `openrouter.ai` 只出现在 **服务端发起的请求** 中（前端 Network 里不应直接出现）。
 5. 访问 `https://你的域名/ocr.config.json`：应返回 404（确认真实密钥文件未被打包）。
+6. 管理页 → 「云同步」→ 填写同步地址并保存 → 「立即同步」应提示成功；
+   在另一台设备浏览器打开同一站点同步后，记录与渠道应互通。
+   DevTools → Network 中 `/api/sync` 请求应返回 200。
 
 ## 六、安全注意事项
 
