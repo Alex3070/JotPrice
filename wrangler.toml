@@ -1,0 +1,11 @@
+# Cloudflare Wrangler 配置
+# 用途：本地开发（wrangler pages dev）与 D1 建表/管理
+# 生产环境 Pages 的 D1 绑定需在控制台配置，绑定变量名同为 DB。
+name = "jotprice"
+compatibility_date = "2026-09-01"
+pages_build_output_dir = "./dist"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "maicai-sync"
+database_id = "1a81451d-3dda-4a09-9cd0-d6ca51934254"
