@@ -26,7 +26,7 @@ interface SyncState {
 }
 
 const SyncCtx = createContext<SyncState>({
-  config: { url: "", auto: false },
+  config: { auto: false },
   lastSyncAt: null,
   syncing: false,
   error: null,
@@ -41,7 +41,7 @@ export function useSync() {
 const AUTO_SYNC_INTERVAL = 60_000; // 自动同步间隔
 
 export function SyncProvider({ children }: { children: ReactNode }) {
-  const [config, setConfig] = useState<SyncConfig>({ url: "", auto: false });
+  const [config, setConfig] = useState<SyncConfig>({ auto: false });
   const [lastSyncAt, setLastSyncAt] = useState<number | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);

@@ -9,20 +9,19 @@ import {
 
 /** 云同步配置（存于 IndexedDB settings） */
 export interface SyncConfig {
-  /** 同步接口地址。留空时使用同域相对路径 /api/sync */
-  url: string;
   /** 是否自动同步（启动 + 每 60 秒 + 回到前台时） */
   auto: boolean;
-  /** 可选口令，与服务端 ACCESS_TOKEN 一致；留空则用构建变量 VITE_ACCESS_TOKEN */
-  token?: string;
 }
 
 const KEY_CONFIG = "sync:config";
 const KEY_LAST_PULL = "sync:lastPulledAt";
 const KEY_LAST_SYNC = "sync:lastSyncAt";
 
+/** 同步接口固定使用同域相对路径（与站点同源部署） */
+const SYNC_URL = "/api/sync";
+
 export async function getSyncConfig(): Promise<SyncConfig> {
-  return (await getSetting<SyncConfig>(KEY_CONFIG)) ?? { url: "", auto: false };
+  return (await getSetting<SyncConfig>(KEY_CONFIG)) ?? { auto: false };
 }
 
 export async function setSyncConfig(cfg: SyncConfig): Promise<void> {
@@ -43,21 +42,14 @@ async function getLastPulledAt(): Promise<number> {
  * 冲突策略为 Last-Write-Wins（按 updatedAt 比较）。
  */
 export async function syncOnce(): Promise<void> {
-  const cfg = await getSyncConfig();
-  const url = cfg.url.trim() || "/api/sync";
-  if (!url) return;
-
   const headers: Record<string, string> = { "Content-Type": "application/json" };
-  const token =
-    cfg.token?.trim() ||
-    (import.meta.env.VITE_ACCESS_TOKEN as string | undefined) ||
-    "";
+  const token = (import.meta.env.VITE_ACCESS_TOKEN as string | undefined) || "";
   if (token) headers["x-access-token"] = token;
 
   const since = await getLastPulledAt();
 
   // 1. 拉取增量
-  const res = await fetch(`${url}?since=${since}`, { headers });
+  const res = await fetch(`${SYNC_URL}?since=${since}`, { headers });
   if (!res.ok) {
     throw new Error(`同步拉取失败：HTTP ${res.status}`);
   }
@@ -72,7 +64,7 @@ export async function syncOnce(): Promise<void> {
   // 3. 推送本地变更
   const outbox = await getOutbox();
   if (outbox.length > 0) {
-    const pushRes = await fetch(url, {
+    const pushRes = await fetch(SYNC_URL, {
       method: "POST",
       headers,
       body: JSON.stringify({
