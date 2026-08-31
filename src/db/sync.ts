@@ -1,7 +1,9 @@
 import {
   applyRemoteChanges,
   clearOutbox,
+  getChannels,
   getOutbox,
+  getRecords,
   getSetting,
   setSetting,
   type RemoteChange,
@@ -16,6 +18,8 @@ export interface SyncConfig {
 const KEY_CONFIG = "sync:config";
 const KEY_LAST_PULL = "sync:lastPulledAt";
 const KEY_LAST_SYNC = "sync:lastSyncAt";
+/** 历史数据基线是否已补传（云同步上线前就在本地的数据没有 outbox 记录） */
+const KEY_BASELINE_DONE = "sync:baselineDone";
 
 /** 同步接口固定使用同域相对路径（与站点同源部署） */
 const SYNC_URL = "/api/sync";
@@ -63,19 +67,43 @@ export async function syncOnce(): Promise<void> {
 
   // 3. 推送本地变更
   const outbox = await getOutbox();
-  if (outbox.length > 0) {
+  const items = outbox.map((c) => ({
+    id: c.id,
+    type: c.type,
+    data: c.data,
+    deleted: c.op === "del",
+    updatedAt: c.t,
+  }));
+
+  // 历史数据基线：云同步功能上线前已在本地存在的数据没有 outbox 记录，
+  // 首次同步（基线未完成）时全量补传一次；服务端 LWW 会自动跳过云端更新版本
+  const baselineDone = (await getSetting<boolean>(KEY_BASELINE_DONE)) ?? false;
+  if (!baselineDone) {
+    const [records, channels] = await Promise.all([getRecords(), getChannels()]);
+    const pushed = new Set(items.map((i) => `${i.type}:${i.id}`));
+    for (const r of records) {
+      if (!pushed.has(`record:${r.id}`)) {
+        items.push({ id: r.id, type: "record", data: r, deleted: false, updatedAt: r.createdAt });
+      }
+    }
+    for (const c of channels) {
+      if (!pushed.has(`channel:${c.id}`)) {
+        items.push({
+          id: c.id,
+          type: "channel",
+          data: c,
+          deleted: false,
+          updatedAt: c.createdAt ?? 0,
+        });
+      }
+    }
+  }
+
+  if (items.length > 0) {
     const pushRes = await fetch(SYNC_URL, {
       method: "POST",
       headers,
-      body: JSON.stringify({
-        items: outbox.map((c) => ({
-          id: c.id,
-          type: c.type,
-          data: c.data,
-          deleted: c.op === "del",
-          updatedAt: c.t,
-        })),
-      }),
+      body: JSON.stringify({ items }),
     });
     if (!pushRes.ok) {
       const detail = await pushRes.text().catch(() => "");
@@ -86,7 +114,8 @@ export async function syncOnce(): Promise<void> {
     await clearOutbox();
   }
 
-  // 4. 推进拉取游标与最近同步时间
+  // 4. 推进拉取游标与最近同步时间；推送成功才标记基线完成，失败则下次重试
+  await setSetting(KEY_BASELINE_DONE, true);
   await setSetting(KEY_LAST_PULL, pull.serverTime);
   await setSetting(KEY_LAST_SYNC, Date.now());
 }
